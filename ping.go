@@ -35,19 +35,19 @@ func (ping *Ping) DoPing() {
 
 	trace := &httptrace.ClientTrace{
 		GotFirstResponseByte: func() {
-			ping.firstByte = time.Now().Sub(start)
+			ping.firstByte = time.Since(start)
 		},
 		GetConn: func(hostPort string) {
-			ping.connStart = time.Now().Sub(start)
+			ping.connStart = time.Since(start)
 		},
 		GotConn: func(connInfo httptrace.GotConnInfo) {
-			ping.connDone = time.Now().Sub(start)
+			ping.connDone = time.Since(start)
 		},
 		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
-			ping.dnsDone = time.Now().Sub(start)
+			ping.dnsDone = time.Since(start)
 		},
 		DNSStart: func(dnsStartInfo httptrace.DNSStartInfo) {
-			ping.dnsStart = time.Now().Sub(start)
+			ping.dnsStart = time.Since(start)
 		},
 	}
 

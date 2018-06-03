@@ -12,7 +12,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	if len(os.Args) == 1 {
-		fmt.Println("Nothing to ping. Try `goping www.google.com`")
+		fmt.Println("Nothing to ping. Try `goping-cli www.google.com`")
 		os.Exit(1)
 	}
 
@@ -40,6 +40,6 @@ func main() {
 	// Block until all pings are finished
 	wg.Wait()
 
-	fmt.Printf("goping finished in %v\n", time.Now().Sub(start))
+	fmt.Printf("goping finished in %v\n", time.Since(start))
 	os.Exit(0)
 }
