@@ -1,78 +1,52 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptrace"
 	"regexp"
-	"time"
+
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 // Ping data associated with a single ping
 type Ping struct {
-	firstByte time.Duration
-	connStart time.Duration
-	connDone  time.Duration
-	dnsStart  time.Duration
-	dnsDone   time.Duration
-	index     int
-	url       string
-	err       error
+	index int
+	url   string
+	err   error
 }
 
 // DoPing pings the given url
-func (ping *Ping) DoPing() {
+func (ping *Ping) DoPing(ctx opentracing.SpanContext) {
 
 	match, _ := regexp.MatchString("htt([ps]+)://", ping.url)
 
 	if !match {
-		ping.url = "https://" + ping.url
+		ping.url = "http://" + ping.url
 	}
 
-	start := time.Now()
+	tracer := opentracing.GlobalTracer()
+
+	// start a new Span to wrap HTTP request
+	span := tracer.StartSpan(
+		"DoPing",
+		opentracing.ChildOf(ctx),
+		opentracing.Tag{Key: "url", Value: ping.url},
+		opentracing.Tag{Key: "ping.index", Value: ping.index},
+	)
+
+	// make sure the Span is finished once we're done
+	defer span.Finish()
 
 	req, _ := http.NewRequest("GET", ping.url, nil)
 
-	trace := &httptrace.ClientTrace{
-		GotFirstResponseByte: func() {
-			ping.firstByte = time.Since(start)
-		},
-		GetConn: func(hostPort string) {
-			ping.connStart = time.Since(start)
-		},
-		GotConn: func(connInfo httptrace.GotConnInfo) {
-			ping.connDone = time.Since(start)
-		},
-		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
-			ping.dnsDone = time.Since(start)
-		},
-		DNSStart: func(dnsStartInfo httptrace.DNSStartInfo) {
-			ping.dnsStart = time.Since(start)
-		},
-	}
+	trace := NewClientTrace(span)
 
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 
 	_, err := http.DefaultTransport.RoundTrip(req)
-
 	if err != nil {
 		ping.err = err
 	}
 
-	fmt.Println(ping)
-}
-
-// String toString
-func (ping *Ping) String() string {
-	return fmt.Sprintf(
-		"URL: %s\nIndex: %d\nConn Start: %v\nConn Done: %v\nDNS Start: %v\nDNS End: %v\nFirst Byte: %v\nErrors: %v\n\n",
-		ping.url,
-		ping.index,
-		ping.connStart,
-		ping.connDone,
-		ping.dnsStart,
-		ping.dnsDone,
-		ping.firstByte,
-		ping.err,
-	)
+	span.SetTag("error", ping.err)
 }
