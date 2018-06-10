@@ -13,4 +13,5 @@
 
 - ```$ docker-compose up -d```
 - ```$ goping-cli www.google.com```
-- (Jaeger UI)[localhost:16686]
+
+Navigate to localhost:16686
